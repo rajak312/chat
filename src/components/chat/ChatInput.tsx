@@ -11,7 +11,7 @@ interface ChatInputProps {
 
 export default function ChatInput({ connectionId, onSend }: ChatInputProps) {
   const [text, setText] = useState("");
-  const { mutateAsync } = useSendMessage();
+  const { mutateAsync } = useSendMessage(connectionId);
 
   const handleSend = async () => {
     if (!text.trim()) return;

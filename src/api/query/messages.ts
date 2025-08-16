@@ -2,18 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMessages, sendMessage, markMessageSeen } from "../request/messages";
 import type { Message, SendMessageInput } from "../../types";
 
-export function useMessages(roomId?: string, connectionId?: string) {
+export function useMessages(id: string) {
   return useQuery({
-    queryKey: ["messages", roomId ?? connectionId],
-    queryFn: () => getMessages({ roomId, connectionId }),
-    enabled: !!roomId || !!connectionId,
+    queryKey: ["messages", id],
+    queryFn: () => getMessages({ id }),
   });
 }
 
-export function useSendMessage() {
+export function useSendMessage(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: SendMessageInput) => sendMessage(data),
+    mutationKey: ["messages", id],
+    mutationFn: (data: SendMessageInput) => sendMessage(id, data),
     onSuccess: (newMessage) => {
       queryClient.setQueryData<Message[]>(
         ["messages", newMessage.roomId ?? newMessage.connectionId],
