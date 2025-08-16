@@ -1,16 +1,14 @@
 import { Box, Typography } from "@mui/material";
+import { useMessages } from "../../api/query/messages";
+import type { Message as ChatMessage } from "../../types";
 
 interface MessageListProps {
-  connection: string;
+  chatId: string; // either roomId or connectionId
 }
 
-const dummyMessages = [
-  { id: 1, sender: "me", text: "Hello!" },
-  { id: 2, sender: "alice", text: "Hi there!" },
-  { id: 3, sender: "me", text: "How are you?" },
-];
+export default function MessageList({ chatId }: MessageListProps) {
+  const { data: messages } = useMessages(chatId);
 
-export default function MessageList({ connection }: MessageListProps) {
   return (
     <Box
       sx={{
@@ -22,20 +20,21 @@ export default function MessageList({ connection }: MessageListProps) {
         gap: 1,
       }}
     >
-      {dummyMessages.map((msg) => (
+      {messages?.map((msg: ChatMessage) => (
         <Box
           key={msg.id}
           sx={{
-            alignSelf: msg.sender === "me" ? "flex-end" : "flex-start",
-            bgcolor: msg.sender === "me" ? "primary.main" : "grey.300",
-            color: msg.sender === "me" ? "white" : "black",
+            alignSelf: msg.sender.id === "me" ? "flex-end" : "flex-start",
+            bgcolor: msg.sender.id === "me" ? "primary.main" : "grey.300",
+            color: msg.sender.id === "me" ? "white" : "black",
             px: 2,
             py: 1,
             borderRadius: 2,
             maxWidth: "70%",
+            wordBreak: "break-word",
           }}
         >
-          <Typography>{msg.text}</Typography>
+          <Typography>{msg.ciphertext}</Typography>
         </Box>
       ))}
     </Box>

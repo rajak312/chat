@@ -6,22 +6,19 @@ import {
   Avatar,
   Typography,
 } from "@mui/material";
+import { useChats } from "../../api/query/chats";
 
 interface SidebarProps {
   selectedConnection: string | null;
-  onSelectConnection: (username: string) => void;
+  onSelectConnection: (id: string) => void;
 }
-
-const dummyConnections = [
-  { username: "alice", online: true },
-  { username: "bob", online: false },
-  { username: "charlie", online: true },
-];
 
 export default function Sidebar({
   selectedConnection,
   onSelectConnection,
 }: SidebarProps) {
+  const { data } = useChats();
+
   return (
     <Box
       width={{ xs: "100%", sm: 300 }}
@@ -35,19 +32,36 @@ export default function Sidebar({
         variant="h6"
         sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}
       >
-        Connections
+        Chats
       </Typography>
       <List>
-        {dummyConnections.map((user) => (
+        {data?.chats.map((chat) => (
           <ListItemButton
-            key={user.username}
-            selected={selectedConnection === user.username}
-            onClick={() => onSelectConnection(user.username)}
+            key={chat.id}
+            selected={selectedConnection === chat.id}
+            onClick={() => onSelectConnection(chat.id)}
           >
-            <Avatar sx={{ mr: 2, bgcolor: user.online ? "green" : "grey" }}>
-              {user.username[0].toUpperCase()}
+            <Avatar
+              sx={{
+                mr: 2,
+                bgcolor:
+                  chat.type === "connection" && chat.participant.online
+                    ? "green"
+                    : "grey",
+              }}
+            >
+              {chat.type === "connection"
+                ? chat.participant.username[0].toUpperCase()
+                : chat.name[0].toUpperCase()}
             </Avatar>
-            <ListItemText primary={user.username} />
+            <ListItemText
+              primary={
+                chat.type === "connection"
+                  ? chat.participant.username
+                  : chat.name
+              }
+              secondary={chat.lastMessage?.ciphertext || "No messages yet"}
+            />
           </ListItemButton>
         ))}
       </List>

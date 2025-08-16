@@ -6,9 +6,7 @@ import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
 
 export default function ChatLayout() {
-  const [selectedConnection, setSelectedConnection] = useState<string | null>(
-    null
-  );
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const isMobile = useMediaQuery("(max-width:600px)");
 
   return (
@@ -19,15 +17,15 @@ export default function ChatLayout() {
       bgcolor="background.default"
     >
       {/* Sidebar */}
-      {(!isMobile || !selectedConnection) && (
+      {(!isMobile || !selectedChatId) && (
         <Sidebar
-          selectedConnection={selectedConnection}
-          onSelectConnection={setSelectedConnection}
+          selectedConnection={selectedChatId}
+          onSelectConnection={setSelectedChatId}
         />
       )}
 
       {/* Chat Window */}
-      {selectedConnection && (
+      {selectedChatId && (
         <Box
           flex={1}
           display="flex"
@@ -36,7 +34,7 @@ export default function ChatLayout() {
           borderColor="divider"
           width={{ xs: "100%", sm: "auto" }}
         >
-          {/* Mobile Header with back button */}
+          {/* Mobile Header */}
           {isMobile && (
             <Box
               display="flex"
@@ -46,20 +44,20 @@ export default function ChatLayout() {
               borderColor="divider"
               bgcolor="background.paper"
             >
-              <IconButton onClick={() => setSelectedConnection(null)}>
+              <IconButton onClick={() => setSelectedChatId(null)}>
                 <ArrowBackIcon />
               </IconButton>
               <Typography variant="h6" ml={1}>
-                {selectedConnection}
+                {selectedChatId}
               </Typography>
             </Box>
           )}
 
           {/* Messages */}
-          <MessageList connection={selectedConnection} />
+          <MessageList chatId={selectedChatId} />
 
           {/* Input */}
-          <ChatInput connection={selectedConnection} />
+          <ChatInput connectionId={selectedChatId} />
         </Box>
       )}
     </Box>

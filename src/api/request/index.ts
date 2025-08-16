@@ -5,4 +5,5 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-export * from "./auth";
+export * from "./connections";
+export * from "./messages";
