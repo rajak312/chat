@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMessages, sendMessage, markMessageSeen } from "../request/messages";
 import type { Message, SendMessageInput } from "../../types";
 
-export function useMessages(id: string) {
+export function useMessages(id: string, deviceId: string) {
   return useQuery({
-    queryKey: ["messages", id],
-    queryFn: () => getMessages({ id }),
+    queryKey: ["messages", id, deviceId],
+    queryFn: () => getMessages({ id, deviceId }),
+    enabled: !!(id && deviceId),
   });
 }
 

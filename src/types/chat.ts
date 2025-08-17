@@ -23,7 +23,7 @@ export interface GroupChat {
   lastMessage: Message | null;
 }
 
-export type Chat = ConnectionChat | GroupChat;
+export type Chat = ConnectionChat;
 
 export interface Connection {
   id: string;
@@ -64,7 +64,7 @@ export interface MessageSeen {
 }
 
 export interface GetChatsResponseItem {
-  chats: (ConnectionChat | GroupChat)[];
+  chats: ConnectionChat[];
 }
 
 export interface GetMessagesResponse extends Array<Message> {}

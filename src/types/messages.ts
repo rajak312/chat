@@ -20,4 +20,5 @@ export interface Message {
   version?: string;
   createdAt: string;
   seenBy: { userId: string }[];
+  senderEphemeralPublic: string;
 }

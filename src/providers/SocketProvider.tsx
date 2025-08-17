@@ -19,7 +19,14 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const s = io(import.meta.env.VITE_CHAT_WS_URL || "http://localhost:5000", {
       transports: ["websocket"],
-      autoConnect: true,
+      // autoConnect: true,
+      // withCredentials: true,
+      auth: {
+        session_id: document.cookie.replace(
+          /(?:(?:^|.*;\s*)session_id\s*\=\s*([^;]*).*$)|^.*$/,
+          "$1"
+        ),
+      },
     });
 
     s.on("connect", () => {
@@ -28,6 +35,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     s.on("disconnect", () => {
       console.log("WebSocket disconnected");
+    });
+    s.on("connect_error", (err) => {
+      console.error("Connect error:", err.message);
     });
 
     setSocket(s);

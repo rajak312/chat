@@ -7,3 +7,4 @@ export const api = axios.create({
 
 export * from "./connections";
 export * from "./messages";
+export * from "./crypto";

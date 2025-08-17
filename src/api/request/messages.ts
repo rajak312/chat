@@ -9,7 +9,8 @@ export const sendMessage = async (
 };
 
 export const getMessages = async (payload: {
-  id?: string;
+  id: string;
+  deviceId: string | null;
   cursor?: string;
   limit?: number;
 }): Promise<ChatMessage[]> => {

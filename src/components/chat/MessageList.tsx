@@ -1,13 +1,19 @@
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useMessages } from "../../api/query/messages";
-import type { Message as ChatMessage } from "../../types";
+import type { Message as ChatMessage, Device } from "../../types";
+import { Message } from "./Message";
+import { useCrypto } from "../../providers/CryptoProvider";
 
 interface MessageListProps {
-  chatId: string; // either roomId or connectionId
+  chatId: string;
+  devices?: Device[];
 }
 
-export default function MessageList({ chatId }: MessageListProps) {
-  const { data: messages } = useMessages(chatId);
+export default function MessageList({ chatId, devices }: MessageListProps) {
+  const { deviceId } = useCrypto();
+  const { data: messages } = useMessages(chatId, deviceId);
+
+  console.log("Deviceid", deviceId);
 
   return (
     <Box
@@ -21,21 +27,7 @@ export default function MessageList({ chatId }: MessageListProps) {
       }}
     >
       {messages?.map((msg: ChatMessage) => (
-        <Box
-          key={msg.id}
-          sx={{
-            alignSelf: msg.sender.id === "me" ? "flex-end" : "flex-start",
-            bgcolor: msg.sender.id === "me" ? "primary.main" : "grey.300",
-            color: msg.sender.id === "me" ? "white" : "black",
-            px: 2,
-            py: 1,
-            borderRadius: 2,
-            maxWidth: "70%",
-            wordBreak: "break-word",
-          }}
-        >
-          <Typography>{msg.ciphertext}</Typography>
-        </Box>
+        <Message message={msg} devices={devices} />
       ))}
     </Box>
   );

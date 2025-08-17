@@ -7,10 +7,11 @@ import {
   Typography,
 } from "@mui/material";
 import { useChats } from "../../api/query/chats";
+import type { Chat } from "../../types";
 
 interface SidebarProps {
-  selectedConnection: string | null;
-  onSelectConnection: (id: string) => void;
+  selectedConnection?: string;
+  onSelectConnection: (chat: Chat) => void;
 }
 
 export default function Sidebar({
@@ -39,7 +40,7 @@ export default function Sidebar({
           <ListItemButton
             key={chat.id}
             selected={selectedConnection === chat.id}
-            onClick={() => onSelectConnection(chat.id)}
+            onClick={() => onSelectConnection(chat)}
           >
             <Avatar
               sx={{
@@ -52,13 +53,13 @@ export default function Sidebar({
             >
               {chat.type === "connection"
                 ? chat.participant.username[0].toUpperCase()
-                : chat.name[0].toUpperCase()}
+                : chat.participant.username[0].toUpperCase()}
             </Avatar>
             <ListItemText
               primary={
                 chat.type === "connection"
                   ? chat.participant.username
-                  : chat.name
+                  : chat.participant.username
               }
               secondary={chat.lastMessage?.ciphertext || "No messages yet"}
             />
