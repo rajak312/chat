@@ -5,7 +5,7 @@ import {
   respondConnectionRequest,
   removeConnection,
 } from "../request/connections";
-import type { Connection } from "../../types/chat";
+import type { Connection } from "../../types";
 
 export function useConnections() {
   return useQuery<Connection[]>({

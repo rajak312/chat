@@ -4,43 +4,46 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Sidebar from "./Sidebar";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
-import { useGetUserDevices } from "../../api";
-import type { Chat, Device } from "../../types";
+import type { Conversation, Device } from "../../types";
 import { useSocket } from "../../providers/SocketProvider";
 import { useCrypto } from "../../providers/CryptoProvider";
+import { useGetConversationsById } from "../../api/query/conversation";
+import { useGetDevicesByUserId } from "../../api/query/devices";
 
 export default function ChatLayout() {
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [selectedConversation, setSelectedConversation] =
+    useState<Conversation | null>(null);
   const isMobile = useMediaQuery("(max-width:600px)");
   const { socket } = useSocket();
-  const { encryptAndPrepareMessage } = useCrypto();
-  const { data: devices } = useGetUserDevices(
-    selectedChat?.participant.id || ""
+  const { data: devices } = useGetDevicesByUserId(
+    selectedConversation?.participant?.id || ""
   );
+  const { encryptWithServer, deviceInfo } = useCrypto();
 
   const handleSendMessage = async (text: string) => {
-    if (!selectedChat || !devices?.length || !socket) return;
+    console.log("Sending message", text, devices, socket, selectedConversation);
+    if (!selectedConversation || !devices?.length || !socket) return;
 
-    // Encrypt once per device and send
-    const payloads = await Promise.all(
-      devices.map(async (device: Device) => {
-        const { ciphertext, iv, senderEphemeralPublic } =
-          await encryptAndPrepareMessage(device.id, text);
+    try {
+      const payloads = await Promise.all(
+        devices.map(async (device: Device) => {
+          const ciphertext = await encryptWithServer(device.publicKey, text);
 
-        return {
-          id: selectedChat.id,
-          recipientUserId: selectedChat.participant.id,
-          recipientDeviceId: device.id,
-          ciphertext,
-          iv,
-          senderEphemeralPublic,
-        };
-      })
-    );
+          return {
+            id: selectedConversation.id,
+            recipientUserId: selectedConversation.participant?.id,
+            recipientDeviceId: device.id,
+            senderDeviceId: deviceInfo?.id,
+            ciphertext,
+          };
+        })
+      );
 
-    // Emit each payload individually
-    console.log("Sending messag");
-    payloads.forEach((payload) => socket.emit("send_message", payload));
+      console.log("Encrypted payloads:", payloads);
+      payloads.forEach((payload) => socket.emit("send_message", payload));
+    } catch (err) {
+      console.error("Failed to send encrypted message", err);
+    }
   };
 
   return (
@@ -51,15 +54,15 @@ export default function ChatLayout() {
       bgcolor="background.default"
     >
       {/* Sidebar */}
-      {(!isMobile || !selectedChat) && (
+      {(!isMobile || !selectedConversation) && (
         <Sidebar
-          selectedConnection={selectedChat?.id}
-          onSelectConnection={setSelectedChat}
+          selectedConnection={selectedConversation?.id}
+          onSelectConnection={setSelectedConversation}
         />
       )}
 
       {/* Chat Window */}
-      {selectedChat && (
+      {selectedConversation && (
         <Box
           flex={1}
           display="flex"
@@ -78,21 +81,20 @@ export default function ChatLayout() {
               borderColor="divider"
               bgcolor="background.paper"
             >
-              <IconButton onClick={() => setSelectedChat(null)}>
+              <IconButton onClick={() => setSelectedConversation(null)}>
                 <ArrowBackIcon />
               </IconButton>
               <Typography variant="h6" ml={1}>
-                {selectedChat.id}
+                {selectedConversation.participant?.username ||
+                  selectedConversation.id}
               </Typography>
             </Box>
           )}
 
-          {/* Messages */}
-          <MessageList chatId={selectedChat.id} devices={devices} />
+          <MessageList conversationId={selectedConversation.id} />
 
-          {/* Input */}
           <ChatInput
-            connectionId={selectedChat.id}
+            connectionId={selectedConversation.id}
             onSend={handleSendMessage}
           />
         </Box>

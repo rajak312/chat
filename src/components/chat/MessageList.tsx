@@ -5,15 +5,12 @@ import { Message } from "./Message";
 import { useCrypto } from "../../providers/CryptoProvider";
 
 interface MessageListProps {
-  chatId: string;
-  devices?: Device[];
+  conversationId: string;
 }
 
-export default function MessageList({ chatId, devices }: MessageListProps) {
-  const { deviceId } = useCrypto();
-  const { data: messages } = useMessages(chatId, deviceId);
-
-  console.log("Deviceid", deviceId);
+export default function MessageList({ conversationId }: MessageListProps) {
+  const { deviceInfo } = useCrypto();
+  const { data: messages } = useMessages(conversationId, deviceInfo?.id || "");
 
   return (
     <Box
@@ -27,7 +24,7 @@ export default function MessageList({ chatId, devices }: MessageListProps) {
       }}
     >
       {messages?.map((msg: ChatMessage) => (
-        <Message message={msg} devices={devices} />
+        <Message message={msg} />
       ))}
     </Box>
   );

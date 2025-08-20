@@ -1,42 +1,26 @@
 import { Box, Typography } from "@mui/material";
 import { useCrypto } from "../../providers/CryptoProvider";
 import { useEffect, useState } from "react";
-import type { Device, Message } from "../../types";
+import type { Message as MsgType } from "../../types";
 import { useCurrentUser } from "../../api";
 
 export interface MessageProps {
-  message: Message;
-  devices?: Device[];
+  message: MsgType;
 }
 
-export function Message({ message, devices }: MessageProps) {
-  const { decryptReceivedMessage } = useCrypto();
+export function Message({ message }: MessageProps) {
+  const { decryptWithDevice } = useCrypto();
   const [plaintext, setPlaintext] = useState<string>("Decrypting...");
-  const { data } = useCurrentUser();
+  const { data: currentUser } = useCurrentUser();
 
   useEffect(() => {
     let isMounted = true;
 
     async function decrypt() {
       try {
-        // Only attempt decryption if encrypted fields exist
-        // console.log("decrypting", message);
-        if (message.iv && message.senderEphemeralPublic) {
-          console.log("decrypting");
-          console.log("ciphertext", message.ciphertext);
-          console.log("iv", message.iv);
-          console.log("senderEphemeralPublic", message.senderEphemeralPublic);
+        const decrypted = await decryptWithDevice(message.ciphertext);
 
-          const decrypted = await decryptReceivedMessage(
-            message.ciphertext,
-            message.iv,
-            message.senderEphemeralPublic
-          );
-          console.log(decrypted, "mees");
-          if (isMounted) setPlaintext(decrypted);
-        } else {
-          setPlaintext(message.ciphertext); // fallback if not encrypted
-        }
+        if (isMounted) setPlaintext(decrypted);
       } catch (err) {
         console.error("Failed to decrypt message", err);
         if (isMounted) setPlaintext("[Unable to decrypt]");
@@ -44,19 +28,20 @@ export function Message({ message, devices }: MessageProps) {
     }
 
     decrypt();
-
     return () => {
       isMounted = false;
     };
-  }, [message, decryptReceivedMessage]);
+  }, [message.ciphertext]);
 
   return (
     <Box
       key={message.id}
       sx={{
-        alignSelf: message.sender.id === data?.id ? "flex-end" : "flex-start",
-        bgcolor: message.sender.id === data?.id ? "primary.main" : "grey.300",
-        color: message.sender.id === data?.id ? "white" : "black",
+        alignSelf:
+          message.sender.id === currentUser?.id ? "flex-end" : "flex-start",
+        bgcolor:
+          message.sender.id === currentUser?.id ? "primary.main" : "grey.300",
+        color: message.sender.id === currentUser?.id ? "white" : "black",
         px: 2,
         py: 1,
         borderRadius: 2,

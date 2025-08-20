@@ -8,20 +8,23 @@ import App from "./App.tsx";
 import { SocketProvider } from "./providers/SocketProvider.tsx";
 import { CryptoProvider } from "./providers/CryptoProvider.tsx";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { AuthProvider } from "./providers/AuthProvider.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <SocketProvider>
-      <CryptoProvider>
-        <QueryClientProvider client={new QueryClient()}>
-          <AppThemeProvider>
-            <ToastProvider>
-              <App />
-              <ReactQueryDevtools />
-            </ToastProvider>
-          </AppThemeProvider>
-        </QueryClientProvider>
-      </CryptoProvider>
-    </SocketProvider>
+    <AppThemeProvider>
+      <QueryClientProvider client={new QueryClient()}>
+        <AuthProvider>
+          <CryptoProvider>
+            <SocketProvider>
+              <ToastProvider>
+                <App />
+                <ReactQueryDevtools />
+              </ToastProvider>
+            </SocketProvider>
+          </CryptoProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </AppThemeProvider>
   </StrictMode>
 );

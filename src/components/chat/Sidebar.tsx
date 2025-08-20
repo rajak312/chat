@@ -6,19 +6,19 @@ import {
   Avatar,
   Typography,
 } from "@mui/material";
-import { useChats } from "../../api/query/chats";
-import type { Chat } from "../../types";
+import { useGetConversations } from "../../api/query/conversation";
+import type { Conversation } from "../../types";
 
 interface SidebarProps {
   selectedConnection?: string;
-  onSelectConnection: (chat: Chat) => void;
+  onSelectConnection: (chat: Conversation) => void;
 }
 
 export default function Sidebar({
   selectedConnection,
   onSelectConnection,
 }: SidebarProps) {
-  const { data } = useChats();
+  const { data } = useGetConversations();
 
   return (
     <Box
@@ -36,7 +36,7 @@ export default function Sidebar({
         Chats
       </Typography>
       <List>
-        {data?.chats.map((chat) => (
+        {data?.conversations?.map((chat) => (
           <ListItemButton
             key={chat.id}
             selected={selectedConnection === chat.id}
@@ -46,20 +46,20 @@ export default function Sidebar({
               sx={{
                 mr: 2,
                 bgcolor:
-                  chat.type === "connection" && chat.participant.online
+                  chat.type === "connection" && chat?.participant?.online
                     ? "green"
                     : "grey",
               }}
             >
               {chat.type === "connection"
-                ? chat.participant.username[0].toUpperCase()
-                : chat.participant.username[0].toUpperCase()}
+                ? chat.participant?.username[0].toUpperCase()
+                : chat.participant?.username[0].toUpperCase()}
             </Avatar>
             <ListItemText
               primary={
                 chat.type === "connection"
-                  ? chat.participant.username
-                  : chat.participant.username
+                  ? chat.participant?.username
+                  : chat.participant?.username
               }
               secondary={chat.lastMessage?.ciphertext || "No messages yet"}
             />
