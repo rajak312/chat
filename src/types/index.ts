@@ -5,3 +5,4 @@ export * from "./devices";
 export * from "./messages";
 export * from "./rooms";
 export * from "./user";
+export * from "./crypto";

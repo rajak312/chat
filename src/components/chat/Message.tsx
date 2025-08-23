@@ -1,37 +1,60 @@
 import { Box, Typography } from "@mui/material";
 import { useCrypto } from "../../providers/CryptoProvider";
 import { useEffect, useState } from "react";
-import type { Message as MsgType } from "../../types";
+import type { Message } from "../../types";
 import { useCurrentUser } from "../../api";
 
 export interface MessageProps {
-  message: MsgType;
+  message: Message;
 }
 
 export function Message({ message }: MessageProps) {
-  const { decryptWithDevice } = useCrypto();
+  const { decryptText, deviceInfo } = useCrypto();
   const [plaintext, setPlaintext] = useState<string>("Decrypting...");
   const { data: currentUser } = useCurrentUser();
+  const isMyMessage = !!(message.sender.id === currentUser?.id);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function decrypt() {
+    let running = true;
+    (async () => {
       try {
-        const decrypted = await decryptWithDevice(message.ciphertext);
+        let wrappedKey = message.wrappedKeys;
+        if (!message.iv || !message.ciphertext || !wrappedKey) {
+          console.warn("Missing fields required for hybrid decrypt", {
+            iv: !!message.iv,
+            ct: !!message.ciphertext,
+            wk: !!wrappedKey,
+          });
+          if (running) setPlaintext("[No ciphertext for this device]");
+          return;
+        }
 
-        if (isMounted) setPlaintext(decrypted);
+        const wrappedKeys = message.wrappedKeys.map((k) => k.encryptedKey);
+        console.log(deviceInfo?.id, message.wrappedKeys);
+        console.log("Message", message);
+
+        const dec = await decryptText(
+          message.iv,
+          message.ciphertext,
+          wrappedKeys[0]
+        );
+        if (!dec) return;
+        if (running) setPlaintext(dec);
       } catch (err) {
         console.error("Failed to decrypt message", err);
-        if (isMounted) setPlaintext("[Unable to decrypt]");
+        if (running) setPlaintext("[Unable to decrypt]");
       }
-    }
-
-    decrypt();
+    })();
     return () => {
-      isMounted = false;
+      running = false;
     };
-  }, [message.ciphertext]);
+  }, [
+    message.id,
+    message.iv,
+    message.ciphertext,
+    deviceInfo?.id,
+    message.wrappedKeys,
+  ]);
 
   return (
     <Box

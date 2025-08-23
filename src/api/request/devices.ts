@@ -4,7 +4,7 @@ import type { Device, RegisterDevicePayload } from "../../types";
 export const registerDevice = async (
   body: RegisterDevicePayload
 ): Promise<Device> => {
-  return await api.post("devices/register", body);
+  return (await api.post("devices/register", body)).data;
 };
 
 export const getDevicesByUserId = async (userId: string) => {

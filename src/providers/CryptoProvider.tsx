@@ -2,73 +2,50 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRegisterDeviceMutation } from "../api/query/devices";
 import type { Device } from "../types";
 import {
-  generateKeyPair,
-  importPublicKey,
-  encryptMessage,
-  decryptMessage,
+  decryptHybrid,
+  generateRsaPair,
+  importPrivateKeyFromB64,
 } from "../crypto";
 
-type CryptoContextType = {
+export interface CryptoContextType {
   deviceInfo: Device | null;
-  encryptWithServer: (message: string, serverPubKey: string) => Promise<string>;
-  decryptWithDevice: (ciphertext: string) => Promise<string>;
-};
+  decryptText: (
+    iv: string,
+    ciphertext: string,
+    encryptedKey: string
+  ) => Promise<string | undefined>;
+}
 
 const CryptoContext = createContext<CryptoContextType | null>(null);
 
 export const CryptoProvider = ({ children }: { children: React.ReactNode }) => {
   const [deviceInfo, setDeviceInfo] = useState<Device | null>(null);
-  const [privateKey, setPrivateKey] = useState<CryptoKey | null>(null);
+  const [keys, setKeys] = useState<{ pub: string; priv: string } | null>(null);
   const registerMutation = useRegisterDeviceMutation();
 
   const registerDevice = async () => {
     try {
       const storedInfo = localStorage.getItem("CHAT_DEVICE_INFO");
-      const storedPriv = localStorage.getItem("CHAT_DEVICE_PRIVATE_KEY");
-      if (storedInfo && storedPriv) {
-        setDeviceInfo(JSON.parse(storedInfo));
-        const binary = Uint8Array.from(atob(storedPriv), (c) =>
-          c.charCodeAt(0)
-        );
-        const key = await window.crypto.subtle.importKey(
-          "pkcs8",
-          binary.buffer,
-          { name: "RSA-OAEP", hash: "SHA-256" },
-          true,
-          ["decrypt"]
-        );
-        setPrivateKey(key);
+      const storedKeys = localStorage.getItem("CHAT_DEVICE_KEYS");
+      if (storedInfo && storedKeys) {
+        const info = JSON.parse(storedInfo) as Device;
+        setDeviceInfo(info);
+        setKeys(JSON.parse(storedKeys));
         return;
       }
 
-      const keyPair = await generateKeyPair();
-
-      const exportedPub = await crypto.subtle.exportKey(
-        "spki",
-        keyPair.publicKey
-      );
-      const exportedPriv = await crypto.subtle.exportKey(
-        "pkcs8",
-        keyPair.privateKey
-      );
-
-      const pubB64 = btoa(String.fromCharCode(...new Uint8Array(exportedPub)));
-      const privB64 = btoa(
-        String.fromCharCode(...new Uint8Array(exportedPriv))
-      );
+      const { pubB64, privB64 } = await generateRsaPair();
+      const keys = { pub: pubB64, priv: privB64 };
 
       const deviceName = `web-${navigator.userAgent}`;
       registerMutation.mutate(
-        {
-          name: deviceName,
-          publicKey: pubB64,
-        },
+        { name: deviceName, publicKey: pubB64 },
         {
           onSuccess: (data) => {
             localStorage.setItem("CHAT_DEVICE_INFO", JSON.stringify(data));
-            localStorage.setItem("CHAT_DEVICE_PRIVATE_KEY", privB64);
+            localStorage.setItem("CHAT_DEVICE_KEYS", JSON.stringify(keys));
             setDeviceInfo(data);
-            setPrivateKey(keyPair.privateKey);
+            setKeys(keys);
           },
         }
       );
@@ -77,29 +54,25 @@ export const CryptoProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  async function decryptText(
+    iv: string,
+    ciphertext: string,
+    encryptedKey: string
+  ): Promise<string | undefined> {
+    if (!keys?.priv) return;
+    const privKey = await importPrivateKeyFromB64(keys.priv);
+    return await decryptHybrid(privKey, iv, ciphertext, encryptedKey);
+  }
+
   useEffect(() => {
     registerDevice();
   }, []);
-
-  const encryptWithServer = async (
-    message: string,
-    serverPubKey: string
-  ): Promise<string> => {
-    const pubKey = await importPublicKey(serverPubKey);
-    return await encryptMessage(pubKey, message);
-  };
-
-  const decryptWithDevice = async (ciphertext: string): Promise<string> => {
-    if (!privateKey) throw new Error("Private key not loaded");
-    return await decryptMessage(privateKey, ciphertext);
-  };
 
   return (
     <CryptoContext.Provider
       value={{
         deviceInfo,
-        encryptWithServer,
-        decryptWithDevice,
+        decryptText,
       }}
     >
       {children}

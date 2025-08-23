@@ -14,7 +14,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   if (!isLoading && !data) {
     const redirectUri = encodeURIComponent(window.location.href);
-    window.location.href = `https://your-auth-api.com/login?redirect_uri=${redirectUri}`;
+    window.location.href = `https://localhost:5413/login?redirect_uri=${redirectUri}`;
     return null;
   }
 

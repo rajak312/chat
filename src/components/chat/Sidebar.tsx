@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import { useGetConversations } from "../../api/query/conversation";
 import type { Conversation } from "../../types";
+import { useCurrentUser } from "../../api";
 
 interface SidebarProps {
   selectedConnection?: string;
@@ -19,6 +20,7 @@ export default function Sidebar({
   onSelectConnection,
 }: SidebarProps) {
   const { data } = useGetConversations();
+  const { data: user } = useCurrentUser();
 
   return (
     <Box
@@ -33,7 +35,7 @@ export default function Sidebar({
         variant="h6"
         sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}
       >
-        Chats
+        Chats : {user?.username}
       </Typography>
       <List>
         {data?.conversations?.map((chat) => (
