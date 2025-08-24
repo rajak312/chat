@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
-import type { Conversation, Device } from "../../types";
+import type { Conversation, Device, Message } from "../../types";
 import { useSocket } from "../../providers/SocketProvider";
 import { useGetDevicesByUserId } from "../../api/query/devices";
 import { useCurrentUser, useMessages } from "../../api";
@@ -23,7 +23,6 @@ export default function ChatLayout() {
   const { data: recipientDevices } = useGetDevicesByUserId(recipientId);
   const { data: myDevices } = useGetDevicesByUserId(currentUser?.id || "");
 
-  // expose cache helpers from your hook
   const { addMessage, updateMessageStatus } = useMessages(
     selectedConversation?.id,
     deviceInfo?.id
@@ -32,30 +31,19 @@ export default function ChatLayout() {
   useEffect(() => {
     if (!socket) return;
 
-    // ✅ sender confirm: temp -> sent
-    const handleMessageCreated = (payload: {
-      messageId: string;
-      tempId?: string;
-    }) => {
-      if (payload.tempId) {
-        updateMessageStatus(payload.tempId, payload.messageId);
-      }
-    };
-
-    // ✅ receiver: new incoming message or update -> received
-    const handleReceiveMessage = (payload: any) => {
-      console.log("Revieve Message", payload);
+    const handleReceiveMessage = (payload: Message) => {
+      console.log("Adding Message from recieve", payload);
+      if (payload.senderId === currentUser?.id)
+        return updateMessageStatus(payload);
       addMessage({
         ...payload,
         status: "received",
       });
     };
 
-    socket.on("message_created", handleMessageCreated);
     socket.on("receive_message", handleReceiveMessage);
 
     return () => {
-      socket.off("message_created", handleMessageCreated);
       socket.off("receive_message", handleReceiveMessage);
     };
   }, [socket, updateMessageStatus, addMessage]);
@@ -80,13 +68,15 @@ export default function ChatLayout() {
       );
 
       const tempId = "temp-" + Date.now();
+      const keys = wrappedKeys.filter(
+        (prev) => prev.deviceId === deviceInfo.id
+      );
 
-      // optimistic insert → pending
       addMessage({
         id: tempId,
         ciphertext,
         iv,
-        wrappedKeys,
+        wrappedKeys: keys,
         senderId: currentUser?.id || "",
         senderDeviceId: deviceInfo.id,
         sender: {
@@ -97,6 +87,21 @@ export default function ChatLayout() {
         seenBy: [],
         status: "pending",
       } as any);
+      console.log("Revieve Message, creating", {
+        id: tempId,
+        ciphertext,
+        iv,
+        wrappedKeys: keys,
+        senderId: currentUser?.id || "",
+        senderDeviceId: deviceInfo.id,
+        sender: {
+          id: currentUser?.id || "",
+          username: currentUser?.username || "me",
+        },
+        createdAt: new Date().toISOString(),
+        seenBy: [],
+        status: "pending",
+      });
 
       socket.emit("send_message", {
         ciphertext,

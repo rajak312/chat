@@ -7,7 +7,7 @@ import {
 import { getMessages, sendMessage, markMessageSeen } from "../request/messages";
 import type { Message, SendMessageRequest } from "../../types";
 
-export function useMessages(id: string, deviceId: string | null) {
+export function useMessages(id?: string, deviceId?: string | null) {
   const queryClient = useQueryClient();
 
   const query = useInfiniteQuery<Message[]>({
@@ -20,6 +20,7 @@ export function useMessages(id: string, deviceId: string | null) {
   });
 
   const addMessage = (message: Message) => {
+    console.log("Adding Message", message);
     queryClient.setQueryData(["messages", id, deviceId], (old: any) => {
       if (!old) return { pages: [[message]], pageParams: [""] };
       return {
@@ -29,14 +30,17 @@ export function useMessages(id: string, deviceId: string | null) {
     });
   };
 
-  const updateMessageStatus = (tempId: string, newId: string) => {
+  const updateMessageStatus = (payload: Message) => {
+    console.log("Payload", payload);
     queryClient.setQueryData(["messages", id, deviceId], (old: any) => {
       if (!old) return old;
       return {
         ...old,
         pages: old.pages.map((page: Message[]) =>
           page.map((msg) =>
-            msg.id === tempId ? { ...msg, id: newId, status: "sent" } : msg
+            msg.ciphertext === payload.ciphertext
+              ? { ...payload, status: "sent" }
+              : msg
           )
         ),
       };
