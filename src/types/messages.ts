@@ -26,6 +26,7 @@ export interface Message {
 
   // New field → every message may contain multiple wrapped keys
   wrappedKeys: WrappedKey[];
+  status?: "pending" | "sent";
 }
 
 export interface MessageSeen {

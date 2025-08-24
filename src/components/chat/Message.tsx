@@ -30,14 +30,12 @@ export function Message({ message }: MessageProps) {
         }
 
         const wrappedKeys = message.wrappedKeys.map((k) => k.encryptedKey);
-        console.log(deviceInfo?.id, message.wrappedKeys);
-        console.log("Message", message);
-
         const dec = await decryptText(
           message.iv,
           message.ciphertext,
           wrappedKeys[0]
         );
+        console.log("dec", dec);
         if (!dec) return;
         if (running) setPlaintext(dec);
       } catch (err) {

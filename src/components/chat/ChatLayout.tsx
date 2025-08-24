@@ -1,13 +1,12 @@
-// src/components/ChatLayout.tsx
 import { Box, IconButton, Typography, useMediaQuery } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MessageList from "./MessageList";
 import ChatInput from "./ChatInput";
-import type { Conversation, Device, SendMessageRequest } from "../../types";
+import type { Conversation, Device } from "../../types";
 import { useSocket } from "../../providers/SocketProvider";
 import { useGetDevicesByUserId } from "../../api/query/devices";
-import { useCurrentUser } from "../../api";
+import { useCurrentUser, useMessages } from "../../api";
 import Sidebar from "./Sidebar";
 import { encryptHybrid } from "../../crypto";
 import { useCrypto } from "../../providers/CryptoProvider";
@@ -24,6 +23,43 @@ export default function ChatLayout() {
   const { data: recipientDevices } = useGetDevicesByUserId(recipientId);
   const { data: myDevices } = useGetDevicesByUserId(currentUser?.id || "");
 
+  // expose cache helpers from your hook
+  const { addMessage, updateMessageStatus } = useMessages(
+    selectedConversation?.id,
+    deviceInfo?.id
+  );
+
+  useEffect(() => {
+    if (!socket) return;
+
+    // ✅ sender confirm: temp -> sent
+    const handleMessageCreated = (payload: {
+      messageId: string;
+      tempId?: string;
+    }) => {
+      if (payload.tempId) {
+        updateMessageStatus(payload.tempId, payload.messageId);
+      }
+    };
+
+    // ✅ receiver: new incoming message or update -> received
+    const handleReceiveMessage = (payload: any) => {
+      console.log("Revieve Message", payload);
+      addMessage({
+        ...payload,
+        status: "received",
+      });
+    };
+
+    socket.on("message_created", handleMessageCreated);
+    socket.on("receive_message", handleReceiveMessage);
+
+    return () => {
+      socket.off("message_created", handleMessageCreated);
+      socket.off("receive_message", handleReceiveMessage);
+    };
+  }, [socket, updateMessageStatus, addMessage]);
+
   const handleSendMessage = async (text: string) => {
     if (!selectedConversation || !socket || !deviceInfo) return;
 
@@ -32,23 +68,44 @@ export default function ChatLayout() {
       ...(myDevices || []),
     ];
     if (targets.length === 0) return;
-    const map = new Map<string, Device>();
-    targets.forEach((d) => map.set(d.id, d));
-    const uniqueTargets = Array.from(map.values());
+
+    const uniqueTargets = Array.from(
+      new Map(targets.map((d) => [d.id, d])).values()
+    );
 
     try {
       const { ciphertext, iv, wrappedKeys } = await encryptHybrid(
         text,
         uniqueTargets
       );
-      const payload: SendMessageRequest = {
+
+      const tempId = "temp-" + Date.now();
+
+      // optimistic insert → pending
+      addMessage({
+        id: tempId,
+        ciphertext,
+        iv,
+        wrappedKeys,
+        senderId: currentUser?.id || "",
+        senderDeviceId: deviceInfo.id,
+        sender: {
+          id: currentUser?.id || "",
+          username: currentUser?.username || "me",
+        },
+        createdAt: new Date().toISOString(),
+        seenBy: [],
+        status: "pending",
+      } as any);
+
+      socket.emit("send_message", {
         ciphertext,
         iv,
         wrappedKeys,
         id: selectedConversation.id,
         senderDeviceId: deviceInfo.id,
-      };
-      socket.emit("send_message", payload);
+        tempId,
+      });
     } catch (err) {
       console.error("Failed to send encrypted message", err);
     }
@@ -97,10 +154,7 @@ export default function ChatLayout() {
           )}
 
           <MessageList conversationId={selectedConversation.id} />
-          <ChatInput
-            connectionId={selectedConversation.id}
-            onSend={handleSendMessage}
-          />
+          <ChatInput onSend={handleSendMessage} />
         </Box>
       )}
     </Box>

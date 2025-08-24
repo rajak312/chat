@@ -3,11 +3,10 @@ import SendIcon from "@mui/icons-material/Send";
 import { useState } from "react";
 
 interface ChatInputProps {
-  connectionId: string;
   onSend?: (msg: string) => void;
 }
 
-export default function ChatInput({ connectionId, onSend }: ChatInputProps) {
+export default function ChatInput({ onSend }: ChatInputProps) {
   const [text, setText] = useState("");
 
   const handleSend = async () => {

@@ -1,16 +1,16 @@
 import { api } from ".";
-import type { SendMessageInput, Message as ChatMessage } from "../../types";
+import type { SendMessageRequest, Message as ChatMessage } from "../../types";
 
 export const sendMessage = async (
   id: string,
-  data: SendMessageInput
+  data: SendMessageRequest
 ): Promise<ChatMessage> => {
   return (await api.post("/messages", data)).data;
 };
 
 export const getMessages = async (payload: {
-  id: string;
-  deviceId: string | null;
+  id?: string;
+  deviceId?: string | null;
   cursor?: string;
   limit?: number;
 }): Promise<ChatMessage[]> => {
